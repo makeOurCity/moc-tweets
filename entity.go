@@ -9,13 +9,14 @@ const OrionEntityType = "Tweet"
 const TwitterDateTimeFormat = "Mon Jan 02 15:04:05 -0700 2006"
 
 type OrionEntity struct {
-	ID                string            `json:"id"`
-	Type              string            `json:"type"`
-	Body              TextAttribute     `json:"body"`
-	Username          TextAttribute     `json:"username"`
-	TwitterScreenName TextAttribute     `json:"twitter_screen_name"`
-	TwitterID         NumberAttribute   `json:"twitter_id"`
-	TweetedAt         DateTimeAttribute `json:"tweeted_at"`
+	ID           string            `json:"id"`
+	Type         string            `json:"type"`
+	Body         TextAttribute     `json:"body"`
+	Username     TextAttribute     `json:"username"`
+	ScreenName   TextAttribute     `json:"screen_name"`
+	UserID       NumberAttribute   `json:"user_id"`
+	TweetedAt    DateTimeAttribute `json:"tweeted_at"`
+	IconImageURL TextAttribute     `json:"icon_image_url"`
 }
 
 type NumberAttribute struct {

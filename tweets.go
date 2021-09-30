@@ -39,8 +39,9 @@ func Tweet2Entity(t anaconda.Tweet) (*OrionEntity, error) {
 	e.ID = fmt.Sprintf("urn:ngsi-ld:%s:%d", OrionEntityType, t.Id)
 	e.Body = NewTextAttribute(t.FullText)
 	e.Username = NewTextAttribute(t.User.Name)
-	e.TwitterID = NewNumberAttribute(t.User.Id)
-	e.TwitterScreenName = NewTextAttribute(t.User.ScreenName)
+	e.UserID = NewNumberAttribute(t.User.Id)
+	e.ScreenName = NewTextAttribute(t.User.ScreenName)
+	e.IconImageURL = NewTextAttribute(t.User.ProfileImageURL)
 
 	attr, err := NewDateTimeAttributeFromString(t.CreatedAt)
 	if err != nil {
