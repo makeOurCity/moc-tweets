@@ -5,4 +5,4 @@ build:
 	docker-compose build
 
 run:
-	docker-compose run --rm app
+	docker-compose run --rm --entrypoint go app run cmd/main.go
