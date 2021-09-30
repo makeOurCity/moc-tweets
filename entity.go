@@ -6,6 +6,7 @@ import (
 )
 
 const OrionEntityType = "Tweet"
+const TwitterDateTimeFormat = "Mon Jan 02 15:04:05 -0700 2006"
 
 type OrionEntity struct {
 	ID        string            `json:"id"`
@@ -41,7 +42,7 @@ func NewDateTimeAttribute(v time.Time) DateTimeAttribute {
 }
 
 func NewDateTimeAttributeFromString(v string) (DateTimeAttribute, error) {
-	t, err := time.Parse("Wed Nov 04 12:25:42 +0000 2020", v)
+	t, err := time.Parse(TwitterDateTimeFormat, v)
 	if err != nil {
 		return DateTimeAttribute{}, fmt.Errorf("time.Parse got error: %w", err)
 	}
