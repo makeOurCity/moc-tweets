@@ -17,6 +17,11 @@ type OrionEntity struct {
 	UserID       NumberAttribute   `json:"user_id"`
 	TweetedAt    DateTimeAttribute `json:"tweeted_at"`
 	IconImageURL TextAttribute     `json:"icon_image_url"`
+	Metadata     *Metadata         `json:"metadata"`
+}
+
+type Metadata struct {
+	SearchText TextAttribute
 }
 
 type NumberAttribute struct {
@@ -61,4 +66,12 @@ func NewDateTimeAttributeFromString(v string) (DateTimeAttribute, error) {
 		return DateTimeAttribute{}, fmt.Errorf("time.Parse got error: %w", err)
 	}
 	return NewDateTimeAttribute(t), nil
+}
+
+func (o *OrionEntity) SetSearchText(s string) {
+	if o.Metadata == nil {
+		o.Metadata = &Metadata{}
+	}
+
+	o.Metadata.SearchText = NewTextAttribute(s)
 }

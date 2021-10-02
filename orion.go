@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/ChimeraCoder/anaconda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
@@ -55,17 +56,44 @@ func (o *OrionClient) Login(username string, password string) error {
 		return fmt.Errorf("svc.AdminInitiateAuth got error: %w", err)
 	}
 
-	token := *resp.AuthenticationResult.AccessToken
+	o.token = *(resp.AuthenticationResult.AccessToken)
 
 	return nil
 }
 
-func (o *OrionClient) Send(e OrionEntity) error {
+func (o *OrionClient) Send(e OrionEntity) (*http.Response, error) {
 	url := fmt.Sprintf("%s/v2/entities", o.baseURL)
 	req, err := o.getRequest(url, o.token, o.serviceName, e)
 	if err != nil {
-		return fmt.Errorf("o.getRequest got error: %w", err)
+		return nil, fmt.Errorf("o.getRequest got error: %w", err)
 	}
+
+	resp, err := o.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("o.httpClient.Do got error: %w", err)
+	}
+
+	return resp, nil
+}
+
+func (o *OrionClient) IsExistsEntity(t anaconda.Tweet) (bool, error) {
+	id := GenerateID(t)
+	url := fmt.Sprintf("%s/v2/entities/%s", o.baseURL, id)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return false, fmt.Errorf("http.NewRequest got error: %w", err)
+	}
+
+	resp, err := o.httpClient.Do(req)
+	if err != nil {
+		return false, fmt.Errorf("o.httpClient.Do got error: %w", err)
+	}
+
+	if resp.StatusCode == http.StatusOK {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (o *OrionClient) getRequest(url string, token string, fiwareServiceName string, data interface{}) (*http.Request, error) {
