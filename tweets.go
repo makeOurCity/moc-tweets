@@ -36,7 +36,7 @@ func Tweet2Entity(t anaconda.Tweet) (*OrionEntity, error) {
 		Type: OrionEntityType,
 	}
 
-	e.ID = fmt.Sprintf("urn:ngsi-ld:%s:%d", OrionEntityType, t.Id)
+	e.ID = GenerateID(t)
 	e.Body = NewTextAttribute(t.FullText)
 	e.Username = NewTextAttribute(t.User.Name)
 	e.UserID = NewNumberAttribute(t.User.Id)
@@ -50,4 +50,8 @@ func Tweet2Entity(t anaconda.Tweet) (*OrionEntity, error) {
 	e.TweetedAt = attr
 
 	return &e, nil
+}
+
+func GenerateID(t anaconda.Tweet) string {
+	return fmt.Sprintf("urn:ngsi-ld:%s:%d", OrionEntityType, t.Id)
 }
