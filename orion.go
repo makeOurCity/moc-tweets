@@ -2,18 +2,23 @@ package tweets
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/ChimeraCoder/anaconda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	cognitosrp "github.com/alexrudd/cognito-srp/v4"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	cip "github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
 )
 
 type OrionClient struct {
 	httpClient  *http.Client
+	svc         *cip.Client
 	baseURL     string
 	clientID    string
 	userPoolID  string
@@ -22,41 +27,64 @@ type OrionClient struct {
 }
 
 func NewOrionClient(baseURL, clientID, userPoolID, serviceName string) *OrionClient {
+	cfg, _ := config.LoadDefaultConfig(
+		context.Background(),
+		config.WithRegion("ap-northeast-1"),
+		config.WithCredentialsProvider(aws.AnonymousCredentials{}),
+	)
+	svc := cip.NewFromConfig(cfg)
+
 	o := OrionClient{
 		httpClient:  &http.Client{},
 		baseURL:     baseURL,
 		clientID:    clientID,
 		userPoolID:  userPoolID,
 		serviceName: serviceName,
+		svc:         svc,
 	}
 
 	return &o
 }
 
 func (o *OrionClient) Login(username string, password string) error {
-	svc := cognitoidentityprovider.New(
-		session.New(),
-		&aws.Config{Region: aws.String("ap-northeast-1")},
-	)
+	csrp, _ := cognitosrp.NewCognitoSRP(username, password, o.userPoolID, o.clientID, nil)
 
-	authParams := map[string]*string{
-		"USERNAME": aws.String(username),
-		"PASSWORD": aws.String(password),
-	}
-
-	params := &cognitoidentityprovider.AdminInitiateAuthInput{
-		AuthFlow:       aws.String("ADMIN_NO_SRP_AUTH"),
-		AuthParameters: authParams,
+	params := cip.InitiateAuthInput{
+		AuthFlow:       types.AuthFlowTypeUserSrpAuth,
+		AuthParameters: csrp.GetAuthParams(),
 		ClientId:       aws.String(o.clientID),
-		UserPoolId:     aws.String(o.userPoolID),
+		// UserPoolId:     aws.String(o.userPoolID),
 	}
 
-	resp, err := svc.AdminInitiateAuth(params)
+	resp, err := o.svc.InitiateAuth(context.Background(), &params)
 	if err != nil {
-		return fmt.Errorf("svc.AdminInitiateAuth got error: %w", err)
+		return fmt.Errorf("svc.InitiateAuth got error: %w", err)
 	}
 
-	o.token = *(resp.AuthenticationResult.AccessToken)
+	if resp.ChallengeName == types.ChallengeNameTypePasswordVerifier {
+		challengeResponses, _ := csrp.PasswordVerifierChallenge(resp.ChallengeParameters, time.Now())
+
+		resp, err := o.svc.RespondToAuthChallenge(context.Background(), &cip.RespondToAuthChallengeInput{
+			ChallengeName:      types.ChallengeNameTypePasswordVerifier,
+			ChallengeResponses: challengeResponses,
+			ClientId:           aws.String(csrp.GetClientId()),
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		// print the tokens
+		fmt.Printf("Access Token: %s\n", *resp.AuthenticationResult.AccessToken)
+		fmt.Printf("ID Token: %s\n", *resp.AuthenticationResult.IdToken)
+		fmt.Printf("Refresh Token: %s\n", *resp.AuthenticationResult.RefreshToken)
+		o.token = *resp.AuthenticationResult.IdToken
+	} else {
+		return fmt.Errorf(
+			"challenge name is not %s but %s. Please sign up and change password your user",
+			types.ChallengeNameTypePasswordVerifier,
+			resp.ChallengeName,
+		)
+	}
 
 	return nil
 }
