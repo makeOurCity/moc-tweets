@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -8,11 +9,17 @@ import (
 	tweets "github.com/makeourcity/moc-tweets"
 )
 
-var searchText string
-var tc *tweets.TwitterClient
-var oc *tweets.OrionClient
+var (
+	searchText string
+	tc         *tweets.TwitterClient
+	oc         *tweets.OrionClient
+	dryRun     bool
+)
 
 func init() {
+	flag.BoolVar(&dryRun, "dry-run", false, "Dry run (Get tweets but not POST to ORION)")
+	flag.Parse()
+
 	searchText = os.Getenv("SEARCH_TEXT")
 
 	// Create twitter client
@@ -69,9 +76,13 @@ func main() {
 		}
 		e.SetSearchText(searchText)
 
-		// send to ORION
-		if _, err := oc.Send(*e); err != nil {
-			panic(fmt.Sprintf("oc.Send got error: %s", err))
+		if dryRun {
+			fmt.Println(e)
+		} else {
+			// send to ORION
+			if _, err := oc.Send(*e); err != nil {
+				panic(fmt.Sprintf("oc.Send got error: %s", err))
+			}
 		}
 	}
 }

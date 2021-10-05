@@ -6,3 +6,6 @@ build:
 
 run:
 	docker-compose run --rm --entrypoint go app run cmd/main.go
+
+dry-run:
+	docker-compose run --rm --entrypoint go app run cmd/main.go --dry-run
